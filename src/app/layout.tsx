@@ -9,14 +9,20 @@ import { Providers } from "./provider";
 import type { ReactNode } from "react";
 
 export const metadata = {
-	title: "Mantine Next.js template",
-	description: "I am using Mantine with Next.js!",
+	title: "韻システム",
+	description: "脚韻、頭韻を検索できます",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
 	return (
 		<html lang="ja" {...mantineHtmlProps}>
 			<head>
+				<meta property="og:title" content="韻システム" />
+				<meta property="og:description" content="脚韻、頭韻を検索できます" />
+				<meta property="og:image" content="https://in.nwnwn.com/ogp.png" />
+				<meta property="og:type" content="website" />
+				<meta property="og:url" content="https://in.nwnwn.com" />
+				<meta name="twitter:card" content="summary_large_image" />
 				<ColorSchemeScript />
 				<link rel="shortcut icon" href="/favicon.svg" />
 				<meta
