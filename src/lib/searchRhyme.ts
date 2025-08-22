@@ -1,4 +1,4 @@
-import { getYomi } from "./kuromoji";
+import { getYomi } from "./text-analyzer";
 import { getVowels } from "./getVowels";
 import {
 	searchRhymeInDatabase,
