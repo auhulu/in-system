@@ -1,6 +1,10 @@
 import kuromoji, { type IpadicFeatures, type Tokenizer } from "kuromoji";
+import path from "node:path";
 
-const DIC_PATH = "node_modules/kuromoji/dict";
+// プロダクション環境では public/dict を使用
+const DIC_PATH = process.env.NODE_ENV === "production" 
+  ? path.join(process.cwd(), "public", "dict")
+  : "node_modules/kuromoji/dict";
 
 let tokenizer: Tokenizer<IpadicFeatures> | null = null;
 let initPromise: Promise<void> | null = null;

@@ -130,3 +130,6 @@ dist
 .pnp.*
 
 .DS_Store
+
+# Kuromoji dictionary files (auto-generated)
+public/dict/

@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "mkdir -p public/dict && cp -r node_modules/kuromoji/dict/* public/dict/ && next build",
     "start": "next start",
     "lint": "yarn exec biome lint --write ./src"
   },
