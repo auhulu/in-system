@@ -24,7 +24,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
 				<meta property="og:url" content="https://in.nwnwn.com" />
 				<meta name="twitter:card" content="summary_large_image" />
 				<ColorSchemeScript />
-				<link rel="shortcut icon" href="/favicon.svg" />
+				<link rel="shortcut icon" href="/favicon.ico" />
 				<meta
 					name="viewport"
 					content="minimum-scale=1, initial-scale=1, width=device-width, user-scalable=no"
