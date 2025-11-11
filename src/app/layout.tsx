@@ -1,12 +1,12 @@
 import "@mantine/core/styles.css";
 import {
-	MantineProvider,
 	ColorSchemeScript,
+	MantineProvider,
 	mantineHtmlProps,
 } from "@mantine/core";
+import type { ReactNode } from "react";
 import { theme } from "../theme";
 import { Providers } from "./provider";
-import type { ReactNode } from "react";
 
 export const metadata = {
 	title: "韻システム",

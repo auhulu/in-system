@@ -1,24 +1,24 @@
 "use client";
-import type { RhymeResult } from "../lib/searchRhyme";
 
 import {
-	Container,
-	TextInput,
-	Button,
-	Card,
-	Group,
-	Stack,
-	Title,
-	Text,
 	Alert,
 	Badge,
-	Grid,
-	Switch,
+	Button,
+	Card,
 	Center,
+	Container,
+	Grid,
+	Group,
+	Stack,
+	Switch,
+	Text,
+	TextInput,
+	Title,
 } from "@mantine/core";
-import { useState } from "react";
+import { IconAlertCircle, IconSearch } from "@tabler/icons-react";
 import { useMutation } from "@tanstack/react-query";
-import { IconSearch, IconAlertCircle } from "@tabler/icons-react";
+import { useState } from "react";
+import type { RhymeResult } from "../lib/searchRhyme";
 
 interface SearchParams {
 	text: string;

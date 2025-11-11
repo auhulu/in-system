@@ -1,10 +1,11 @@
-import kuromoji, { type IpadicFeatures, type Tokenizer } from "kuromoji";
 import path from "node:path";
+import kuromoji, { type IpadicFeatures, type Tokenizer } from "kuromoji";
 
 // プロダクション環境では public/dict を使用
-const DIC_PATH = process.env.NODE_ENV === "production" 
-  ? path.join(process.cwd(), "public", "dict")
-  : "node_modules/kuromoji/dict";
+const DIC_PATH =
+	process.env.NODE_ENV === "production"
+		? path.join(process.cwd(), "public", "dict")
+		: "node_modules/kuromoji/dict";
 
 let tokenizer: Tokenizer<IpadicFeatures> | null = null;
 let initPromise: Promise<void> | null = null;
@@ -32,7 +33,11 @@ export async function initializeTokenizer(): Promise<void> {
 				if (err) {
 					// エラー時はPromiseをリセットして再試行可能にする
 					initPromise = null;
-					reject(new Error(`Kuromoji tokenizer initialization failed: ${err.message}`));
+					reject(
+						new Error(
+							`Kuromoji tokenizer initialization failed: ${err.message}`,
+						),
+					);
 					return;
 				}
 				tokenizer = builtTokenizer;
@@ -49,7 +54,9 @@ export async function initializeTokenizer(): Promise<void> {
  */
 export function getTokenizer(): Tokenizer<IpadicFeatures> {
 	if (!tokenizer) {
-		throw new Error("Tokenizer is not initialized. Call initializeTokenizer() first.");
+		throw new Error(
+			"Tokenizer is not initialized. Call initializeTokenizer() first.",
+		);
 	}
 	return tokenizer;
 }

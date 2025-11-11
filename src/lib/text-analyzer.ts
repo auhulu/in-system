@@ -8,7 +8,7 @@ import { ensureTokenizerReady, getTokenizer } from "./tokenizer-manager";
 export async function getYomi(text: string): Promise<string> {
 	// tokenizerの初期化を確実に行う
 	await ensureTokenizerReady();
-	
+
 	const tokenizer = getTokenizer();
 	const tokens = tokenizer.tokenize(text);
 	let yomi = "";
@@ -44,12 +44,12 @@ export async function tokenizeText(text: string) {
 export async function getYomiBatch(texts: string[]): Promise<string[]> {
 	// 一度だけ初期化を行う
 	await ensureTokenizerReady();
-	
+
 	const results: string[] = [];
 	for (const text of texts) {
 		const yomi = await getYomi(text);
 		results.push(yomi);
 	}
-	
+
 	return results;
 }

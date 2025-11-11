@@ -1,10 +1,10 @@
-import { getYomi } from "./text-analyzer";
-import { getVowels } from "./getVowels";
 import {
-	searchRhymeInDatabase,
-	searchAlliterationInDatabase,
 	closeDatabase,
+	searchAlliterationInDatabase,
+	searchRhymeInDatabase,
 } from "./database";
+import { getVowels } from "./getVowels";
+import { getYomi } from "./text-analyzer";
 
 export interface RhymeResult {
 	yomi: string;
