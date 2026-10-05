@@ -1,79 +1,50 @@
-import {
-	closeDatabase,
-	searchAlliterationInDatabase,
-	searchRhymeInDatabase,
-} from "./database";
+import type { Env } from "../worker/env";
+import { getDatabase, searchInDatabase, type WordEntry } from "./database";
 import { getVowels } from "./getVowels";
 import { getYomi } from "./text-analyzer";
 
 export interface RhymeResult {
 	yomi: string;
 	vowels: string;
-	results: Record<
-		number,
-		Array<{
-			surface: string;
-			yomi: string;
-			vowels: string;
-		}>
-	>;
+	results: Record<number, WordEntry[]>;
 }
 
-export async function searchRhyme(
+async function search(
+	env: Env,
 	text: string,
-	minLength: number = 3,
+	minLength: number,
+	mode: "rhyme" | "alliteration",
 ): Promise<RhymeResult> {
-	try {
-		// kuromojiで読みを取得
-		const yomi = await getYomi(text);
-
-		// 母音列を取得
-		const vowels = getVowels(yomi);
-
-		// データベースから韻を検索
-		const results = searchRhymeInDatabase(vowels, minLength);
-
-		return {
-			yomi,
-			vowels,
-			results,
-		};
-	} finally {
-		// データベース接続をクローズ
-		closeDatabase();
-	}
+	const { yomi, vowels } = await getYomiAndVowels(env, text);
+	if (vowels.length < minLength) return { yomi, vowels, results: {} };
+	const db = await getDatabase(env.ASSETS);
+	return {
+		yomi,
+		vowels,
+		results: searchInDatabase(db, vowels, minLength, mode),
+	};
 }
 
-export async function searchAlliteration(
+export function searchRhyme(
+	env: Env,
 	text: string,
-	minLength: number = 3,
+	minLength = 3,
 ): Promise<RhymeResult> {
-	try {
-		// kuromojiで読みを取得
-		const yomi = await getYomi(text);
-
-		// 母音列を取得
-		const vowels = getVowels(yomi);
-
-		// データベースから頭韻を検索
-		const results = searchAlliterationInDatabase(vowels, minLength);
-
-		return {
-			yomi,
-			vowels,
-			results,
-		};
-	} finally {
-		// データベース接続をクローズ
-		closeDatabase();
-	}
+	return search(env, text, minLength, "rhyme");
 }
 
-// ユーティリティ関数：単一のテキストから読みと母音列を取得
+export function searchAlliteration(
+	env: Env,
+	text: string,
+	minLength = 3,
+): Promise<RhymeResult> {
+	return search(env, text, minLength, "alliteration");
+}
+
 export async function getYomiAndVowels(
+	env: Env,
 	text: string,
 ): Promise<{ yomi: string; vowels: string }> {
-	const yomi = await getYomi(text);
-	const vowels = getVowels(yomi);
-	return { yomi, vowels };
+	const yomi = await getYomi(env.ASSETS, text);
+	return { yomi, vowels: getVowels(yomi) };
 }

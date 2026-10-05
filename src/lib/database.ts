@@ -1,23 +1,33 @@
-import path from "node:path";
-import Database from "better-sqlite3";
+import type { Database } from "sql.js";
+import initSqlJs from "sql.js/dist/sql-wasm-browser.js";
+import sqliteWasm from "sql.js/dist/sql-wasm-browser.wasm?module";
 
-const DB_PATH = path.join(process.cwd(), "in-system.db");
-const TABLE_NAME = "words";
+let database: Database | undefined;
+let initializing: Promise<Database> | undefined;
 
-let db: Database.Database | null = null;
-
-export function getDatabase(): Database.Database {
-	if (!db) {
-		db = new Database(DB_PATH);
-	}
-	return db;
-}
-
-export function closeDatabase(): void {
-	if (db) {
-		db.close();
-		db = null;
-	}
+export async function getDatabase(assets: Fetcher): Promise<Database> {
+	if (database) return database;
+	initializing ??= (async () => {
+		const SQL = await initSqlJs({
+			instantiateWasm(imports, receiveInstance) {
+				const instance = new WebAssembly.Instance(sqliteWasm, imports);
+				receiveInstance(instance);
+				return instance.exports;
+			},
+		});
+		const response = await assets.fetch(
+			"https://assets.internal/data/in-system.db",
+		);
+		if (!response.ok) throw new Error("SQLite database unavailable");
+		const db = new SQL.Database(new Uint8Array(await response.arrayBuffer()));
+		db.run("PRAGMA query_only = ON");
+		database = db;
+		return db;
+	})().catch((error) => {
+		initializing = undefined;
+		throw error;
+	});
+	return initializing;
 }
 
 export interface WordEntry {
@@ -26,90 +36,56 @@ export interface WordEntry {
 	vowels: string;
 }
 
-export function searchRhymeInDatabase(
+// One SQLite scan finds all candidates. Group longest matches first, as before.
+// This avoids scanning 236k rows once per character in the query.
+export function searchInDatabase(
+	db: Database,
 	queryVowels: string,
-	minLength: number = 3,
+	minLength: number,
+	mode: "rhyme" | "alliteration",
 ): Record<number, WordEntry[]> {
-	const database = getDatabase();
-	const resultsByLength: Record<number, WordEntry[]> = {};
-	const usedWords = new Set<string>();
-
-	if (queryVowels.length < minLength) {
-		return resultsByLength;
-	}
-
-	// 最大長から最小長まで検索（長い韻を優先）
-	for (let length = queryVowels.length; length >= minLength; length--) {
-		const suffix = queryVowels.slice(-length);
-
-		const stmt = database.prepare(
-			`SELECT surface, yomi, vowels FROM ${TABLE_NAME} 
-       WHERE vowels LIKE ? AND vowels != ?`,
-		);
-
-		const matches = stmt.all(`%${suffix}`, queryVowels) as WordEntry[];
-
-		if (matches.length > 0) {
-			// 重複を除去して処理
-			const uniqueMatches: WordEntry[] = [];
-			for (const match of matches) {
-				if (!usedWords.has(match.surface)) {
-					uniqueMatches.push(match);
-					usedWords.add(match.surface);
-				}
+	const results: Record<number, WordEntry[]> = {};
+	if (queryVowels.length < minLength) return results;
+	const pattern =
+		mode === "rhyme"
+			? `%${queryVowels.slice(-minLength)}`
+			: `${queryVowels.slice(0, minLength)}%`;
+	const statement = db.prepare(
+		"SELECT surface, yomi, vowels FROM words WHERE vowels LIKE ? AND vowels != ?",
+		[pattern, queryVowels],
+	);
+	const candidates: Record<number, WordEntry[]> = {};
+	try {
+		while (statement.step()) {
+			const row = statement.getAsObject();
+			const word = {
+				surface: String(row.surface),
+				yomi: String(row.yomi),
+				vowels: String(row.vowels),
+			};
+			let length = minLength;
+			while (length < Math.min(queryVowels.length, word.vowels.length)) {
+				const matches =
+					mode === "rhyme"
+						? word.vowels.at(-length - 1) === queryVowels.at(-length - 1)
+						: word.vowels[length] === queryVowels[length];
+				if (!matches) break;
+				length++;
 			}
-
-			if (uniqueMatches.length > 0) {
-				// ランダムな順序にする
-				const shuffled = uniqueMatches.sort(() => Math.random() - 0.5);
-				resultsByLength[length] = shuffled;
-			}
+			candidates[length] ??= [];
+			candidates[length].push(word);
 		}
+	} finally {
+		statement.free();
 	}
-
-	return resultsByLength;
-}
-
-export function searchAlliterationInDatabase(
-	queryVowels: string,
-	minLength: number = 3,
-): Record<number, WordEntry[]> {
-	const database = getDatabase();
-	const resultsByLength: Record<number, WordEntry[]> = {};
-	const usedWords = new Set<string>();
-
-	if (queryVowels.length < minLength) {
-		return resultsByLength;
-	}
-
-	// 最大長から最小長まで検索（長い頭韻を優先）
+	const used = new Set<string>();
 	for (let length = queryVowels.length; length >= minLength; length--) {
-		const prefix = queryVowels.slice(0, length);
-
-		const stmt = database.prepare(
-			`SELECT surface, yomi, vowels FROM ${TABLE_NAME} 
-       WHERE vowels LIKE ? AND vowels != ?`,
-		);
-
-		const matches = stmt.all(`${prefix}%`, queryVowels) as WordEntry[];
-
-		if (matches.length > 0) {
-			// 重複を除去して処理
-			const uniqueMatches: WordEntry[] = [];
-			for (const match of matches) {
-				if (!usedWords.has(match.surface)) {
-					uniqueMatches.push(match);
-					usedWords.add(match.surface);
-				}
-			}
-
-			if (uniqueMatches.length > 0) {
-				// ランダムな順序にする
-				const shuffled = uniqueMatches.sort(() => Math.random() - 0.5);
-				resultsByLength[length] = shuffled;
-			}
-		}
+		const unique = (candidates[length] ?? []).filter((word) => {
+			if (used.has(word.surface)) return false;
+			used.add(word.surface);
+			return true;
+		});
+		if (unique.length) results[length] = unique.sort(() => Math.random() - 0.5);
 	}
-
-	return resultsByLength;
+	return results;
 }

@@ -133,3 +133,9 @@ dist
 
 # Kuromoji dictionary files (auto-generated)
 public/dict/
+
+# Cloudflare and generated data
+.wrangler/
+public/data/
+.dev.vars
+.dev.vars.*
